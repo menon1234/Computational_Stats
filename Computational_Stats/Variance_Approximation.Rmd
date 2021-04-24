@@ -1,0 +1,247 @@
+---
+title: "Variance Approximation"
+author: "Sreenand Sasikumar"
+date: "1/29/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE)
+```
+
+## Question 1: Be careful when comparing:
+
+```{r snippet1,echo=FALSE}
+# Question 1: Be careful when comparing
+
+options(digits = 20)
+x1<-1/3
+x2<-1/4
+
+if(x1-x2 == 1/12)
+{
+  print("Subtraction is correct")
+} else 
+{
+  print("Subtraction is wrong")
+}
+
+# In the first snippet, when the Target value and Current values are compared upto 22 decimal points, there is a irregularity hence the output result says "Subtraction is wrong".
+
+```
+The code above is giving "Subtraction is wrong" because the computation compares all the decimal points. Both the values has non terminating quotients.
+
+Here x1-x2 = 0.083333333333333315 
+
+1/12 = 0.083333333333333329
+
+We can see that after 15 decimal points there is some difference.
+
+
+
+```{r snippet2,echo=FALSE}
+x1<-1
+x2<-1/2
+if(x1-x2 == 1/2){
+  print("Subtraction is correct")
+} else {
+  print("Subtraction is wrong")
+}
+
+```
+
+The code above is giving "Subtraction is correct" because the resulting values from x1-x2 and 1\2 terminated after one decimal point.
+
+To avoid the computational errors like in the first snippet while performing in r we could use system function "all.equal()".
+
+```{r improvement,echo=FALSE}
+x1<-1/3
+x2<-1/4
+
+if(all.equal(x1-x2 , 1/12))
+{
+  print("Subtraction is correct")
+} else
+{
+  print("Subtraction is wrong")
+}
+```
+
+## Question 2: Derivative
+```{r derivative 2.1,echo=FALSE}
+userderivative<-function(x)
+{
+  epsillon<-10^(-15)
+  deriv <- ((x+epsillon)-x)/epsillon
+  deriv
+}
+```
+
+
+```{r derivative evaluate 2.2,echo=FALSE}
+userderivative(1)
+userderivative(100000)
+```
+
+
+## Question 2.3:
+
+For x = 1 the derivative is : 1.1102230246251565
+
+For x = 100000 the derivative is : 0
+
+The true values for the computation of both the derivatives should be : 1
+
+In the case of 1 the tail part after decimal is not neglected as 1 has a very little magnitude.(the left part of the decimal).
+
+Unlike the case for one 100000 is a large number and the tail part is neglected while subtracting 100000 from it, so there we are getting zero in the numerator resulting the overall zero.
+
+## Question 3: Variance
+
+```{r ques 3.1,echo=FALSE}
+
+
+myvar <- function(x)
+{
+  n <- length(x)
+  v <- (sum(x^2) - (sum(x) ^ 2 / n)) / n-1
+  return(v)
+}
+
+```
+
+```{r ques3.2,echo=FALSE}
+
+set.seed(12345)
+x <- rnorm(10000,mean = 10^8, sd = 1)
+
+
+
+```
+
+```{r ques3.3,echo=FALSE}
+
+Yi <- vector()
+for(i in 1:length(x))
+{
+  Yi[i] <- myvar(x[1:i]) - var(x[1:i])
+}
+
+plot(seq(1:length(x)),Yi,xlab = "i",ylab = "Yi  (myvar(x)-var(x))")
+
+
+
+```
+
+From the above plot we can say that the values obtained by both the functions are so different. we can observe a difference of +2 to -4.
+
+So we can say that the user defined function myvar is not giving the valid results for the variance.
+
+
+
+```{r,echo=FALSE}
+
+improvedvar<-function(x)
+{
+  sum<-0
+  mean<-mean(x)
+  for (i in 1:length(x)) 
+  {
+    sum<-sum + (x[i]-mean)^2
+    
+  }
+  sum<-sum/(length(x)-1)
+ return(sum) 
+  
+}
+Yi <- vector()
+for(i in 1:length(x))
+{
+  Yi[i] <- improvedvar(x[1:i]) - var(x[1:i])
+}
+
+plot(seq(1:length(x)),Yi,xlab = "i",ylab = "Yi  (myvar(x)-var(x))",main = "function1")
+
+
+
+var_YC<-function(v_x){
+  ## v_x is a numerical vector of length greater than 2
+  ## this function calculates the sample variance 
+  ## using the Youngs and Cramer algorithm
+  T<-v_x[1]
+  RSS<-0
+  n<-length(v_x)
+  for (j in 2:n){
+    T<-T+v_x[j]
+    RSS<-RSS+((j*v_x[j]-T)^2)/(j*(j-1))
+  }
+  RSS/(n-1)
+}
+
+Yi <- vector()
+for(i in 1:length(x))
+{
+  Yi[i] <- var_YC(x[1:i]) - var(x[1:i])
+}
+
+plot(seq(1:length(x)),Yi,xlab = "i",ylab = "Yi  (myvar(x)-var(x))",main ="Youngs and Cramer algorithm" )
+
+
+
+```
+
+
+Above mentioned are two variance finding functions which are giving the similar results as system function var(). Here we can observe that a very fraction of positive diiference is observed while we take these functions. So we can use these improved functions instead of the myvar() function.
+
+## Question 4: Linear Algebra
+
+```{r linearAlgebra,echo=FALSE}
+set.seed(12345)
+
+tec_data <- readxl::read_excel(file.choose())
+X <- as.matrix(tec_data[,c(-1,-103)])
+Y <- as.matrix(tec_data[,c(103)])
+X <- cbind(1,X)
+
+A <- t(X) %*% X
+b_vec <- t(X) %*% Y
+ 
+#beta <- solve(A) %*% b_vec
+
+```
+
+"system is computationally singular: reciprocal condition number = 7.78804e-17" error is given when tried to calculate the coefficients.
+The above error could be becuase, the system is treating the A matrix as singular which cannot be invertible in general. The reason could be the linear dependency of multiple variables or values of variable which are changing drastically with respect to each other.
+
+```{r,echo=FALSE}
+cat("The conditional number for unscaled matrix A is found to be",kappa(A))
+```
+
+kappa function outputs the condition number of product of norm of matrix with it's inverse. Since in the above case there seems to be a singularity in the inverse of A matrix, kappa is resulting in a very high condition number. We can infer that higher the conditional number more prone the matrix to be computationally singular.
+
+```{r,echo=FALSE}
+# Scaled data
+X <- as.matrix(tec_data[,c(-1,-103)])
+X_scale <- scale(X)
+Y <- as.matrix(tec_data[,c(103)])
+Y_scale <- scale(Y)
+X <- cbind(1,X)
+
+
+A_sc <- t(X_scale) %*% X_scale
+b_vec_sc <- t(X_scale) %*% Y_scale
+
+beta_sc <- solve(A_sc) %*% b_vec_sc
+beta_sc
+
+cat("The conditional number for scaled matrix A is found to be",kappa(A_sc))
+```
+
+The conditional number after scaling the data has reduced siginificantly and hence the inverse of A_sc could be calculated by the system.
+The reason is the raw data containing many features are of different units with respect to each other and the product yeilds in a big number which system cannot handle. Hence the Inverse of A could not be found since there was a very big condition number.
+Once the data has been scaled, all the feature values are made uniform and inverse of the A matrix could be handled by the system and also the linear dependency between the variables is more siginificant since there is no drastic change in the values of variables as it is restricted within 1.
+
+### Appendix
+
+```{r , ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
